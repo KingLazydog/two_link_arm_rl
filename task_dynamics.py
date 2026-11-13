@@ -51,13 +51,20 @@ def _nearest_ik(q, target):
     return min(sols, key=lambda s: np.linalg.norm(wrap(np.array(s) - q)))
 
 
-def make_pd(kp=100.0, kd=20.0, gravity=True):
+def make_pd(kp=100.0, kd=20.0, gravity=True, params=None, tau_max=TAU_MAX):
     """
     PD 位置控制，可选是否补偿重力。
 
     gravity=False 是最常见的学生实现：只写 PD，不管重力。
     真机上它会稳定停在目标下方一段距离 —— 重力矩被 Kp*误差 顶住了，
     这个误差就是"下垂量"，量纲上约等于 G/Kp。
+
+    params 指定控制器"以为"的机构参数。默认用标称值；传入与真实机构
+    不同的参数，就得到"模型失配"的控制器 —— 实验七用的就是这种情况。
+
+    tau_max 必须与环境的力矩上限一致：控制器把力矩归一化到 [-1, 1]，
+    环境再乘回去。两边不一致会静默地把实际力矩放大或缩小，
+    表现为"补偿得越准反而越差"，很难查。
     """
     def policy(obs):
         q, target, qd = _decode(obs, True)
@@ -66,8 +73,8 @@ def make_pd(kp=100.0, kd=20.0, gravity=True):
             return np.zeros(2)
         tau = kp * wrap(np.array(q_des) - q) - kd * qd
         if gravity:
-            tau = tau + gravity_vec(q)
-        return np.clip(tau / TAU_MAX, -1.0, 1.0)
+            tau = tau + (gravity_vec(q) if params is None else gravity_vec(q, params))
+        return np.clip(tau / tau_max, -1.0, 1.0)
     return policy
 
 
