@@ -7,3 +7,8 @@ NOTES.md
 
 # 本地推送辅助脚本（含本机绝对路径）
 *.cmd
+
+# 演示用的中间产物与编译产物（可由脚本重新生成）
+webdemo/demo_data.json
+webdemo/c/*.exe
+webdemo/c/test_vectors.json
